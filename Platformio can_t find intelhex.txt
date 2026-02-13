@@ -1,0 +1,7 @@
+Found a solution on the platformio forum
+
+https://github.com/platformio/platform-espressif32/issues/1632#issuecomment-3155057733
+
+1. Save the project and close VS Code
+2. Remove the C:\Users\_UTENTE_\.platformio\packages/tool-esptoolpy directory 
+3. re-open the project in vscode: platformio will reload esptoolpy and configure the environment
