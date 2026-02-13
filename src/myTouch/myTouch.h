@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-// Header nativo IDF
+// Native IDF Header
 extern "C"
 {
 #include "driver/touch_pad.h"
@@ -24,7 +24,7 @@ extern "C"
  * - 10nF capacitor connected between GPIO 4 (TOUCH_PAD_NUM0) and GND for reference
  * - Touch electrode connected to selected GPIO pin
  * 
- * @author Your Name
+ * @author DL26
  * @version 1.0
  */
 class myTouch
@@ -76,7 +76,7 @@ public:
      * 
      * @example
      * @code
-     * uint16_t value = touch.leggiFiltrato();
+     * uint16_t value = touch.readFiltered();
      * if (value < threshold) {
      *     Serial.println("Sensor touched!");
      * }
@@ -85,7 +85,7 @@ public:
      * @note This function should be called regularly (every 10-100ms) for responsive
      *       behavior. The value updates at 100Hz internally.
      */
-    uint16_t leggiFiltrato();
+    uint16_t readFiltered();
 
     /**
      * @brief Automatically calibrates the touch sensor by averaging resting readings
@@ -98,7 +98,7 @@ public:
      * 2. Use returned value to calculate activation threshold
      * 3. Example: threshold = baseline * 0.8
      * 
-     * @param campioni Number of samples to average. Default: 10
+     * @param samples Number of samples to average. Default: 10
      *        - 10:  Fast calibration (100ms) - use for stable environments
      *        - 20:  Medium calibration (200ms) - recommended
      *        - 30+: Slow calibration (300ms+) - for very noisy environments
@@ -108,16 +108,16 @@ public:
      * @example
      * @code
      * Serial.println("Calibrating... don't touch!");
-     * uint16_t baseline = touch.calibra(20);
+     * uint16_t baseline = touch.calibrate(20);
      * uint16_t threshold = baseline - (baseline * 0.2);  // 20% drop = detection
      * @endcode
      * 
      * @warning The sensor MUST NOT be touched during calibration for accurate results.
-     *          Ensure proper timing between begin() and calibra() calls.
+     *          Ensure proper timing between begin() and calibrate() calls.
      * 
-     * @note Each calibration sample takes ~20ms. Adjust campioni parameter accordingly.
+     * @note Each calibration sample takes ~20ms. Adjust samples parameter accordingly.
      */
-    uint16_t calibra(uint8_t campioni = 10);
+    uint16_t calibrate(uint8_t samples = 10);
 
 private:
     touch_pad_t _pin;  ///< The configured touch pad pin

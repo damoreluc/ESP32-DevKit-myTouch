@@ -20,7 +20,7 @@ void setup() {
     Serial.begin(115200);
     
     if (touch.begin(TOUCH_PAD_NUM4)) {
-        uint16_t baseline = touch.calibra(20);
+        uint16_t baseline = touch.calibratete(20);
         threshold = baseline - (baseline * 0.2);
         
         Serial.println("Touch sensor ready!");
@@ -30,7 +30,7 @@ void setup() {
 }
 
 void loop() {
-    uint16_t value = touch.leggiFiltrato();
+    uint16_t value = touch.readFiltered();
     
     if (value < threshold) {
         Serial.println("TOUCHED!");
@@ -61,14 +61,14 @@ void setup() {
     
     Serial.println("Calibrating touch sensor...");
     touch.begin(TOUCH_PAD_NUM4);
-    uint16_t baseline = touch.calibra(30);
+    uint16_t baseline = touch.calibrate(30);
     threshold = baseline - (baseline * 0.25);
     
     Serial.println("Ready!");
 }
 
 void loop() {
-    uint16_t value = touch.leggiFiltrato();
+    uint16_t value = touch.readFiltered();
     bool currentState = (value < threshold);
     
     // Debounce logic
@@ -116,7 +116,7 @@ void setup() {
     
     // Initialize Button 1 (GPIO 13 / TOUCH_PAD_NUM4)
     if (button1.begin(TOUCH_PAD_NUM4)) {
-        uint16_t baseline = button1.calibra(20);
+        uint16_t baseline = button1.calibrate(20);
         threshold1 = baseline - (baseline * 0.2);
         Serial.print("Button 1 calibrated. Baseline: ");
         Serial.println(baseline);
@@ -124,7 +124,7 @@ void setup() {
     
     // Initialize Button 2 (GPIO 12 / TOUCH_PAD_NUM5)
     if (button2.begin(TOUCH_PAD_NUM5)) {
-        uint16_t baseline = button2.calibra(20);
+        uint16_t baseline = button2.calibrate(20);
         threshold2 = baseline - (baseline * 0.2);
         Serial.print("Button 2 calibrated. Baseline: ");
         Serial.println(baseline);
@@ -132,7 +132,7 @@ void setup() {
     
     // Initialize Button 3 (GPIO 27 / TOUCH_PAD_NUM7)
     if (button3.begin(TOUCH_PAD_NUM7)) {
-        uint16_t baseline = button3.calibra(20);
+        uint16_t baseline = button3.calibrate(20);
         threshold3 = baseline - (baseline * 0.2);
         Serial.print("Button 3 calibrated. Baseline: ");
         Serial.println(baseline);
@@ -142,9 +142,9 @@ void setup() {
 }
 
 void loop() {
-    uint16_t val1 = button1.leggiFiltrato();
-    uint16_t val2 = button2.leggiFiltrato();
-    uint16_t val3 = button3.leggiFiltrato();
+    uint16_t val1 = button1.readFiltered();
+    uint16_t val2 = button2.readFiltered();
+    uint16_t val3 = button3.readFiltered();
     
     if (val1 < threshold1) Serial.println("Button 1: TOUCHED");
     if (val2 < threshold2) Serial.println("Button 2: TOUCHED");
@@ -176,7 +176,7 @@ void setup() {
     Serial.println("Initializing touch counter...");
     touch.begin(TOUCH_PAD_NUM4);
     
-    uint16_t baseline = touch.calibra(25);
+    uint16_t baseline = touch.calibrate(25);
     
     // Create hysteresis band (20% below baseline to activate, 15% to release)
     activationThreshold = baseline - (baseline * 0.20);
@@ -192,7 +192,7 @@ void setup() {
 }
 
 void loop() {
-    uint16_t value = touch.leggiFiltrato();
+    uint16_t value = touch.readFiltered();
     
     // Hysteresis logic prevents bouncing between states
     if (!isTouched && value < activationThreshold) {
@@ -229,12 +229,12 @@ void setup() {
     Serial.begin(115200);
     
     touch.begin(TOUCH_PAD_NUM4);
-    baseline = touch.calibra(20);
+    baseline = touch.calibrate(20);
     threshold = baseline - (baseline * 0.2);
 }
 
 void loop() {
-    uint16_t value = touch.leggiFiltrato();
+    uint16_t value = touch.readFiltered();
     
     // Print every 200ms to avoid flooding serial
     if (millis() - lastPrintTime >= 200) {
@@ -308,7 +308,7 @@ void setup() {
     
     Serial.println("Touch sensor with adaptive sensitivity");
     touch.begin(TOUCH_PAD_NUM4);
-    baseline = touch.calibra(20);
+    baseline = touch.calibrate(20);
     
     Serial.print("Baseline: ");
     Serial.println(baseline);
@@ -324,7 +324,7 @@ void printSensitivityThreshold() {
 }
 
 void loop() {
-    uint16_t value = touch.leggiFiltrato();
+    uint16_t value = touch.readFiltered();
     uint16_t threshold = getThreshold(currentSensitivity);
     
     // Simple touch detection

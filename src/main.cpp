@@ -29,7 +29,7 @@
  * 
  * Calibration: Ensure the 10nF capacitor is properly connected to GPIO 4 and GND
  * 
- * @author Your Name
+ * @author DL26
  * @version 1.0
  */
 
@@ -41,7 +41,7 @@ myTouch touch;
 
 // Activation threshold - calculated during calibration
 // When sensor value drops below this, the sensor is considered "touched"
-uint16_t sogliaAttivazione;
+uint16_t activationThreshold;
 
 void setup()
 {
@@ -68,7 +68,7 @@ void setup()
         Serial.println("**DO NOT TOUCH THE SENSOR DURING CALIBRATION**");
         delay(2000); // Give user 2 seconds to see the warning
         
-        uint16_t valoreRiposo = touch.calibra(20);
+        uint16_t baseline = touch.calibrate(20);
         
         // ==================== THRESHOLD CALCULATION ====================
         // After getting baseline, we calculate the activation threshold
@@ -87,20 +87,20 @@ void setup()
         // - 0.1 (10%): Less sensitive, requires stronger touch
         // - 0.2 (20%): Normal sensitivity (recommended)
         // - 0.3 (30%): More sensitive, detects light touch
-        sogliaAttivazione = valoreRiposo - (valoreRiposo * 0.2);
+        activationThreshold = baseline - (baseline * 0.2);
 
         // ==================== DEBUG OUTPUT ====================
         Serial.println("");
         Serial.println("=== CALIBRATION COMPLETE ===");
         Serial.print("Resting value: ");
-        Serial.println(valoreRiposo);
+        Serial.println(baseline);
         Serial.print("Activation threshold: ");
-        Serial.println(sogliaAttivazione);
+        Serial.println(activationThreshold);
         Serial.println("");
         Serial.println("Touch detection active!");
         Serial.println("Expected readings:");
-        Serial.println("  - Untouched: > " + String(sogliaAttivazione));
-        Serial.println("  - Touched:   < " + String(sogliaAttivazione));
+        Serial.println("  - Untouched: > " + String(activationThreshold));
+        Serial.println("  - Touched:   < " + String(activationThreshold));
         Serial.println("=========================");
         Serial.println("");
     }
@@ -128,10 +128,10 @@ void loop()
     // Value interpretation:
     // - Higher value (untouched):  ~2500-3500
     // - Lower value (touched):     ~500-1500
-    uint16_t lettura = touch.leggiFiltrato();
+    uint16_t value = touch.readFiltered();
 
     // Compare reading against the calibrated threshold
-    if (lettura < sogliaAttivazione)
+    if (value < activationThreshold)
     {
         // TOUCHED STATE
         // Sensor reading dropped below threshold
@@ -145,7 +145,7 @@ void loop()
     }
 
     // Print the current sensor reading for debugging/monitoring
-    Serial.println(lettura);
+    Serial.println(value);
     
     // Loop update rate: 100ms
     // This means we check the sensor 10 times per second

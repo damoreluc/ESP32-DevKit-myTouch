@@ -1,5 +1,4 @@
 #include "myTouch.h"
-//#include "driver/touch_pad.h" // Header nativo IDF
 
 /**
  * Constructor: Initialize the touch pad to an invalid state.
@@ -69,7 +68,7 @@ bool myTouch::begin(touch_pad_t pin) {
  *         Lower values = touched state
  *         Higher values = untouched state
  */
-uint16_t myTouch::leggiFiltrato() {
+uint16_t myTouch::readFiltered() {
     uint16_t val;
     // Read the IIR-filtered value directly from hardware
     // This function returns immediately with the latest smoothed reading
@@ -82,23 +81,23 @@ uint16_t myTouch::leggiFiltrato() {
  * Call this once during setup() to establish the baseline value.
  * 
  * The calibration process:
- * 1. Takes 'campioni' readings spaced 20ms apart
+ * 1. Takes 'samples' readings spaced 20ms apart
  * 2. Averages them to reduce noise in the baseline
  * 3. Returns the average as the resting state value
  * 
- * @param campioni Number of samples to average (default: 10)
+ * @param samples Number of samples to average (default: 10)
  * @return uint16_t The average resting value (baseline)
  */
-uint16_t myTouch::calibra(uint8_t campioni) {
-    uint32_t somma = 0;
+uint16_t myTouch::calibrate(uint8_t samples) {
+    uint32_t sum = 0;
     
     // Collect multiple samples
-    for (uint8_t i = 0; i < campioni; i++) {
-        somma += leggiFiltrato();
+    for (uint8_t i = 0; i < samples; i++) {
+        sum += readFiltered();
         delay(20); // 20ms between samples ensures independent readings
     }
     
     // Return the average - this is your baseline/resting value
     // For touch detection, typically use: threshold = baseline * 0.8
-    return (uint16_t)(somma / campioni);
+    return (uint16_t)(sum / samples);
 }
