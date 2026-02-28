@@ -141,17 +141,17 @@ void loop()
     {
         // TOUCHED STATE
         // Sensor reading dropped below threshold
-        Serial.print("TOUCHED! Value: ");
+      //  Serial.print("TOUCHED! Value: ");
     }
     else
     {
         // UNTOUCHED STATE
         // Sensor reading is above threshold
-        Serial.print("Free... Value: ");
+      //  Serial.print("Free... Value: ");
     }
 
     // Print the current sensor reading for debugging/monitoring
-    Serial.println(value);
+   // Serial.println(value);
 
     // Loop update rate: 100ms
     // This means we check the sensor 10 times per second
