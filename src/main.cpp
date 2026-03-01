@@ -25,7 +25,7 @@
  * Hardware Requirements:
  * - Remove the ESP32 DevkitV4 from the ESP32-LCDkit before flashing
  * - 10nF capacitor between GPIO 4 (TOUCH_PAD_NUM0) and GND
- * - Touch electrode on selected GPIO (e.g., GPIO 13 / TOUCH_PAD_NUM4)
+ * - Touch electrode on selected GPIO (e.g., GPIO 32 / TOUCH_PAD_NUM9)
  * - Proper power supply with decoupling capacitors
  *
  * Calibration: Ensure the 10nF capacitor is properly connected to GPIO 4 and GND
@@ -49,9 +49,9 @@ void setup()
     Serial.begin(115200);
     delay(500); // Allow Serial to stabilize
 
-    // Initialize the myTouch system on GPIO 13 (TOUCH_PAD_NUM4)
+    // Initialize the myTouch system on GPIO 32 (TOUCH_PAD_NUM9)
     // This configures the ESP32 hardware: voltage levels, filter, reference channel
-    if (touch.begin(TOUCH_PAD_NUM4))
+    if (touch.begin(TOUCH_PAD_NUM9))
     {
         Serial.println("Touch Sensor System Ready!");
         Serial.println("");

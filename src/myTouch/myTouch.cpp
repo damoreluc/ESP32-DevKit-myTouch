@@ -40,7 +40,7 @@ bool myTouch::begin(touch_pad_t pin)
     // TOUCH_LVOLT_0V5: Low voltage = 0.5V (lower baseline, cleaner signal)
     // TOUCH_HVOLT_ATTEN_1V: Attenuation = 1V (reduces overvoltage stress)
     // This configuration maximizes the signal-to-noise ratio
-    touch_pad_set_voltage(TOUCH_HVOLT_2V7, TOUCH_LVOLT_0V5, TOUCH_HVOLT_ATTEN_1V);
+    touch_pad_set_voltage(TOUCH_HVOLT_2V7, TOUCH_LVOLT_0V5, TOUCH_HVOLT_ATTEN_1V5);
 
     // 4. Configure charging speed and tie option
     // TOUCH_PAD_SLOPE_7: Slowest charging speed (more counts per measurement cycle)
