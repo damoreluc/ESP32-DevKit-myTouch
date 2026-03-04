@@ -12,18 +12,18 @@ extern "C"
 /**
  * @class myTouch
  * @brief ESP32 native touch sensor wrapper with hardware filtering and calibration
- * 
+ *
  * This class provides a simplified interface to the ESP32's capacitive touch sensing
  * capabilities using the native IDF driver. It features:
  * - Hardware IIR filtering for noise-free readings
  * - Automatic calibration to determine resting baselines
  * - Optimized voltage configuration for maximum signal-to-noise ratio
  * - Reference channel configuration for stable operation
- * 
+ *
  * Hardware Requirements:
  * - 10nF capacitor connected between GPIO 4 (TOUCH_PAD_NUM0) and GND for reference
  * - Touch electrode connected to selected GPIO pin
- * 
+ *
  * @author DL26
  * @version 1.0
  */
@@ -32,23 +32,23 @@ class myTouch
 public:
     /**
      * @brief Constructor
-     * 
+     *
      * Creates a new myTouch instance. Actual initialization is deferred to begin().
      */
     myTouch();
 
     /**
      * @brief Initializes the touch sensor system for the specified GPIO pin
-     * 
+     *
      * Configures:
      * - IDF touch driver
      * - Voltage levels: High=2.7V, Low=0.5V, Attenuation=1V
      * - Hardware IIR filter with 10ms sampling period
      * - Reference channel (TOUCH_PAD_NUM0 / GPIO 4)
-     * 
+     *
      * @param pin The touch pad to initialize (e.g., TOUCH_PAD_NUM4 for GPIO 13)
      * @return true if initialization successful, false if failed
-     * 
+     *
      * @example
      * @code
      * myTouch touch;
@@ -56,24 +56,52 @@ public:
      *     Serial.println("Touch ready!");
      * }
      * @endcode
-     * 
+     *
      * @note Call this once during setup(). The system will fail if called multiple times
      *       without proper cleanup.
-     * 
+     *
      * @see TOUCH_PAD_NUM0, TOUCH_PAD_NUM2, TOUCH_PAD_NUM4, TOUCH_PAD_NUM5
      */
     bool begin(touch_pad_t pin);
 
     /**
+     * @brief Initializes multiple touch sensors at once (optional)
+     *
+     * This function can be implemented to initialize multiple touch pads in a single call.
+     * Note: 
+     *
+     * @param pins Array of touch pads to initialize
+     * @param count Number of touch pads in the array
+     * @return true if initialization successful, false if failed
+     *
+     * @example
+     * @code
+     * myTouch touch;
+     * touch_pad_t pins[] = {TOUCH_PAD_NUM4, TOUCH_PAD_NUM5};
+     * if (touch.begin(pins, 2)) {
+     *     Serial.println("Multiple touch pads ready!");
+     * }
+     * @endcode
+     *
+     * @note This method initializes the touch hardware module only once, as per ESP32 datasheet. 
+     *       Call this once during setup(). The system will fail if called multiple times
+     *       without proper cleanup.
+     *
+     */
+    bool begin(const touch_pad_t *pins, size_t count);
+
+    /**
      * @brief Reads the current hardware-filtered touch sensor value
-     * 
+     *     
      * Returns the IIR-filtered ADC reading with a 10ms update rate.
-     * Lower values indicate a touched state.
+     * Lower values indicate a touched state.     
      * 
+     * @param pin Touch pad to read from
+     *
      * @return uint16_t Filtered ADC reading (typically 0-4095 range)
      *         - Untouched: ~2000-3500 (depends on PCB layout)
      *         - Touched:   ~500-1500
-     * 
+     *
      * @example
      * @code
      * uint16_t value = touch.readFiltered();
@@ -81,46 +109,51 @@ public:
      *     Serial.println("Sensor touched!");
      * }
      * @endcode
-     * 
+     *
      * @note This function should be called regularly (every 10-100ms) for responsive
      *       behavior. The value updates at 100Hz internally.
      */
-    uint16_t readFiltered();
+    uint16_t readFiltered(touch_pad_t pin);
 
     /**
      * @brief Automatically calibrates the touch sensor by averaging resting readings
-     * 
+     *
      * This function should be called during setup() without the sensor being touched.
      * It averages multiple readings to determine the baseline (resting) value.
-     * 
+     *
      * Typical calibration process:
      * 1. Call this function without touching the sensor
      * 2. Use returned value to calculate activation threshold
      * 3. Example: threshold = baseline * 0.8
-     * 
+     *
+     * @param pin Touch pad to calibrate
      * @param samples Number of samples to average. Default: 10
      *        - 10:  Fast calibration (100ms) - use for stable environments
      *        - 20:  Medium calibration (200ms) - recommended
      *        - 30+: Slow calibration (300ms+) - for very noisy environments
-     * 
+     *
      * @return uint16_t Average resting value to use as baseline
-     * 
+     *
      * @example
      * @code
      * Serial.println("Calibrating... don't touch!");
-     * uint16_t baseline = touch.calibrate(20);
+     * uint16_t baseline = touch.calibrate(TOUCH_PAD_NUM1,20);
      * uint16_t threshold = baseline - (baseline * 0.2);  // 20% drop = detection
      * @endcode
-     * 
+     *
      * @warning The sensor MUST NOT be touched during calibration for accurate results.
      *          Ensure proper timing between begin() and calibrate() calls.
-     * 
+     *
      * @note Each calibration sample takes ~20ms. Adjust samples parameter accordingly.
      */
-    uint16_t calibrate(uint8_t samples = 10);
+    uint16_t calibrate(touch_pad_t pin, uint8_t samples = 10);
 
 private:
-    touch_pad_t _pin;  ///< The configured touch pad pin
+    touch_pad_t _pin; ///< The configured touch pad pin
+    uint16_t _baseline[TOUCH_PAD_MAX]; // Baseline values for each touch pad (optional, can be used for multi-pad support)
+    static bool _driverInitialized;    // driver global state
+    bool globalHarwareInitialization();
+    bool singlePinConfiguration(touch_pad_t pin);
 };
 
 #endif

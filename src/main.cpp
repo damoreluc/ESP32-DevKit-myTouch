@@ -25,92 +25,66 @@
  * Hardware Requirements:
  * - Remove the ESP32 DevkitV4 from the ESP32-LCDkit before flashing
  * - 10nF capacitor between GPIO 4 (TOUCH_PAD_NUM0) and GND
- * - Touch electrode on selected GPIO (e.g., GPIO 32 / TOUCH_PAD_NUM9)
+ * - Touch electrode on GPIO 32 / TOUCH_PAD_NUM9 and GPIO 33 / TOUCH_PAD_NUM8
  * - Proper power supply with decoupling capacitors
  *
  * Calibration: Ensure the 10nF capacitor is properly connected to GPIO 4 and GND
  *
  * @author DL26
- * @version 1.0
+ * @version 2.0
  */
 
 #include <Arduino.h>
 #include "../src/myTouch/myTouch.h"
 
-// Touch sensor instance
+#define TOUCH1 TOUCH_PAD_NUM8
+#define TOUCH2 TOUCH_PAD_NUM9
+
+// Define an array of touch pads to initialize (optional, can be used for multi-pad support)
+// TOUCH_PAD_NUM9 is mapped on GPIO 32
+// TOUCH_PAD_NUM8 is mapped on GPIO 33
+touch_pad_t sensorsPin[] = {TOUCH1, TOUCH2};
+
+// Sensor instance
 myTouch touch;
 
-// Activation threshold - calculated during calibration
-// When sensor value drops below this, the sensor is considered "touched"
-uint16_t activationThreshold;
+// IIR low pass filtering
+const float tau = 1.0;               // Time constant for the IIR filter (in seconds)
+const float dt = 0.15;               // Loop update interval (in seconds)
+const float alpha = dt / (tau + dt); // Smoothing factor for the IIR filter
+float filteredValue1 = 0;            // Initialize filtered value
+float filteredValue2 = 0;            // Unused second filtered value for demonstration
+float delta;
 
 void setup()
 {
     Serial.begin(115200);
     delay(500); // Allow Serial to stabilize
+    Serial.println("Check your connections:");
+    Serial.println("  1. 10nF capacitor between GPIO 4 and GND");
+    Serial.println("  2. Touch electrodes connected to GPIO 32 and GPIO 33");
 
-    // Initialize the myTouch system on GPIO 32 (TOUCH_PAD_NUM9)
+    // Important: DO NOT TOUCH THE SENSOR during calibration!
+    Serial.println("Starting calibration...");
+    Serial.println("**DO NOT TOUCH THE SENSOR DURING CALIBRATION**");
+    delay(2000); // Give user 2 seconds to see the warning
+
+    // Initialize the myTouch system on GPIO 32 (TOUCH_PAD_NUM9) and GPIO 33 (TOUCH_PAD_NUM8)
     // This configures the ESP32 hardware: voltage levels, filter, reference channel
-    if (touch.begin(TOUCH_PAD_NUM9))
+    if (touch.begin(sensorsPin, sizeof(sensorsPin) / sizeof(sensorsPin[0])))
     {
         Serial.println("Touch Sensor System Ready!");
         Serial.println("");
 
-        // ==================== CALIBRATION PHASE ====================
-        // Automatic calibration: reads baseline value without touching the sensor
-        //
-        // How it works:
-        // 1. Takes 20 samples of untouched readings (20ms apart)
-        // 2. Averages them to eliminate noise
-        // 3. Returns the stable baseline value
-        //
-        // Important: DO NOT TOUCH THE SENSOR during calibration!
-        Serial.println("Starting calibration...");
-        Serial.println("**DO NOT TOUCH THE SENSOR DURING CALIBRATION**");
-        delay(2000); // Give user 2 seconds to see the warning
-
-        uint16_t baseline = touch.calibrate(20);
-
-        // ==================== THRESHOLD CALCULATION ====================
-        // After getting baseline, we calculate the activation threshold
-        //
-        // How it works:
-        // - When untouched: sensor value is HIGH (~2500-3500)
-        // - When touched: sensor value DROPS (~500-1500)
-        // - Threshold = baseline - (baseline * sensitivity%)
-        //
-        // The 0.2 (20%) sensitivity means:
-        // - threshold = baseline - 20% of baseline
-        // - Example: baseline=3000 → threshold = 3000 - 600 = 2400
-        // - If reading drops below 2400 → sensor considered "touched"
-        //
-        // Adjust sensitivity:
-        // - 0.1 (10%): Less sensitive, requires stronger touch
-        // - 0.2 (20%): Normal sensitivity (recommended)
-        // - 0.3 (30%): More sensitive, detects light touch
-        activationThreshold = baseline - (baseline * 0.2);
-
-        // ==================== DEBUG OUTPUT ====================
-        Serial.println("");
-        Serial.println("=== CALIBRATION COMPLETE ===");
-        Serial.print("Resting value: ");
-        Serial.println(baseline);
-        Serial.print("Activation threshold: ");
-        Serial.println(activationThreshold);
-        Serial.println("");
-        Serial.println("Touch detection active!");
-        Serial.println("Expected readings:");
-        Serial.println("  - Untouched: > " + String(activationThreshold));
-        Serial.println("  - Touched:   < " + String(activationThreshold));
-        Serial.println("=========================");
-        Serial.println("");
+        // Initialize the filtered value with the baseline for smooth startup
+        filteredValue1 = touch.readFiltered(sensorsPin[1]);
     }
     else
     {
         Serial.println("ERROR: Failed to initialize touch sensor!");
         Serial.println("Check your connections:");
         Serial.println("  1. 10nF capacitor between GPIO 4 and GND");
-        Serial.println("  2. Touch electrode connected to GPIO 13");
+        Serial.println("  2. Touch electrode connected to GPIO 32 and GPIO 33");
         Serial.println("Board will halt.");
         while (1)
             delay(1000); // Halt execution
@@ -130,32 +104,42 @@ void loop()
     // Value interpretation:
     // - Higher value (untouched):  ~2500-3500
     // - Lower value (touched):     ~500-1500
-    uint16_t value = touch.readFiltered();
+
+    // Read from GPIO 33 / TOUCH_PAD_NUM8
+    uint16_t value1 = touch.readFiltered(sensorsPin[0]);
+    // Read from GPIO 32 / TOUCH_PAD_NUM9
+    uint16_t value2 = touch.readFiltered(sensorsPin[1]);
+    // Apply IIR filter to smooth readings
+    filteredValue1 = alpha * value1 + (1 - alpha) * filteredValue1;
+    filteredValue2 = alpha * value2 + (1 - alpha) * filteredValue2;
+
+    delta = filteredValue1 - filteredValue2;
 
     // Plot data on Teleplot for visualization (optional)
     Serial.print(">level:");
-    Serial.println(value);
+    Serial.println(delta, 2);
 
-    // Compare reading against the calibrated threshold
-    if (value < activationThreshold)
-    {
-        // TOUCHED STATE
-        // Sensor reading dropped below threshold
-      //  Serial.print("TOUCHED! Value: ");
-    }
-    else
-    {
-        // UNTOUCHED STATE
-        // Sensor reading is above threshold
-      //  Serial.print("Free... Value: ");
-    }
-
+    /*
+        // Compare reading against the calibrated threshold
+        if (filteredValue < activationThreshold)
+        {
+            // TOUCHED STATE
+            // Sensor reading dropped below threshold
+          //  Serial.print("TOUCHED! Value: ");
+        }
+        else
+        {
+            // UNTOUCHED STATE
+            // Sensor reading is above threshold
+          //  Serial.print("Free... Value: ");
+        }
+    */
     // Print the current sensor reading for debugging/monitoring
-   // Serial.println(value);
+    // Serial.println(filteredValue);
 
-    // Loop update rate: 100ms
-    // This means we check the sensor 10 times per second
+    // Loop update rate: 150ms
+    // This means we check the sensor ~6-7 times per second
     // Fast enough for responsive touch detection
     // Slow enough to avoid serial flooding
-    delay(100);
+    delay(dt * 1000);
 }
