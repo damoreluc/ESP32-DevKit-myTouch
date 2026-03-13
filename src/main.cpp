@@ -117,7 +117,9 @@ void loop()
 
     // Plot data on Teleplot for visualization (optional)
     Serial.print(">level:");
-    Serial.println(delta, 2);
+    //Serial.println(delta, 2);
+    Serial.print(filteredValue1, 2);
+
 
     /*
         // Compare reading against the calibrated threshold
