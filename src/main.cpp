@@ -35,11 +35,19 @@
  */
 
 #include <Arduino.h>
+#include <ESP32Servo.h>
 #include "../src/myTouch/myTouch.h"
+
+// Map a value from one range to another using float arithmetic.
+// Similar to the Arduino map() function but preserves fractional values.
+static inline float mapFloat(float x, float in_min, float in_max, float out_min, float out_max)
+{
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
 
 #define TOUCH1 TOUCH_PAD_NUM8
 #define TOUCH2 TOUCH_PAD_NUM9
-
+#define servoPin  GPIO_NUM_15
 // Define an array of touch pads to initialize (optional, can be used for multi-pad support)
 // TOUCH_PAD_NUM9 is mapped on GPIO 32
 // TOUCH_PAD_NUM8 is mapped on GPIO 33
@@ -48,21 +56,30 @@ touch_pad_t sensorsPin[] = {TOUCH1, TOUCH2};
 // Sensor instance
 myTouch touch;
 
+// servo motor instance
+Servo myservo;
+
 // IIR low pass filtering
-const float tau = 1.0;               // Time constant for the IIR filter (in seconds)
+const float tau = 0.4;               // Time constant for the IIR filter (in seconds)
 const float dt = 0.15;               // Loop update interval (in seconds)
 const float alpha = dt / (tau + dt); // Smoothing factor for the IIR filter
 float filteredValue1 = 0;            // Initialize filtered value
 float filteredValue2 = 0;            // Unused second filtered value for demonstration
 float delta;
+float H2O_level = 0;                // water level in cm 
 
 void setup()
 {
     Serial.begin(115200);
     delay(500); // Allow Serial to stabilize
+
+    // Print initial instructions for hardware setup
     Serial.println("Check your connections:");
     Serial.println("  1. 10nF capacitor between GPIO 4 and GND");
     Serial.println("  2. Touch electrodes connected to GPIO 32 and GPIO 33");
+
+    // open the servo on GPIO 15
+    myservo.attach(servoPin);
 
     // Important: DO NOT TOUCH THE SENSOR during calibration!
     Serial.println("Starting calibration...");
@@ -118,8 +135,17 @@ void loop()
     // Plot data on Teleplot for visualization (optional)
     Serial.print(">level:");
     //Serial.println(delta, 2);
-    Serial.print(filteredValue1, 2);
+    Serial.println(filteredValue1, 2);
+    // evaluate water level
+    H2O_level = mapFloat(filteredValue1, 1470.0f, 1730.0f, 10.0f, 0.0f);
+    // saturate between 0 and 10 cm
+    H2O_level = max(0.0f, min(10.0f, H2O_level));
+    Serial.print(">H2O_level:");
+    Serial.println(H2O_level, 2);
 
+    // Move servo based on water level (0-10 cm mapped to 0-180 degrees)
+    int servoAngle = (int)mapFloat(H2O_level, 0.0f, 10.0f, 90.0f, 0.0f);
+    myservo.write(servoAngle);
 
     /*
         // Compare reading against the calibrated threshold
